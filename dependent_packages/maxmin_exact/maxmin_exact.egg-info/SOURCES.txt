@@ -1,0 +1,10 @@
+setup.py
+./maxmin_exact/maxMin.cpp
+maxmin_exact/__init__.py
+maxmin_exact/maxMin.cpp
+maxmin_exact/maxmin_exact.py
+maxmin_exact.egg-info/PKG-INFO
+maxmin_exact.egg-info/SOURCES.txt
+maxmin_exact.egg-info/dependency_links.txt
+maxmin_exact.egg-info/requires.txt
+maxmin_exact.egg-info/top_level.txt

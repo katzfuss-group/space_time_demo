@@ -1,0 +1,6 @@
+Metadata-Version: 2.2
+Name: maxmin_exact
+Version: 0.0.0
+Requires-Dist: numpy
+Requires-Dist: torch
+Dynamic: requires-dist

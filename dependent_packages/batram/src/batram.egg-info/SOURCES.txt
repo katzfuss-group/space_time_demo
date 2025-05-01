@@ -1,0 +1,13 @@
+setup.py
+batram/__init__.py
+batram/__version__.py
+batram/legmods.py
+batram/legmods_311.py
+batram/legmods_void.py
+batram/stopper.py
+batram.egg-info/PKG-INFO
+batram.egg-info/SOURCES.txt
+batram.egg-info/dependency_links.txt
+batram.egg-info/top_level.txt
+batram/legacy/__init__.py
+batram/legacy/fit_map.py

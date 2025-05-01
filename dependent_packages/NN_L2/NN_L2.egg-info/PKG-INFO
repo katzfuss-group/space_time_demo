@@ -1,0 +1,10 @@
+Metadata-Version: 2.2
+Name: NN_L2
+Version: 0.0.0
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: sklearn
+Provides-Extra: faiss
+Requires-Dist: faiss; extra == "faiss"
+Dynamic: provides-extra
+Dynamic: requires-dist
