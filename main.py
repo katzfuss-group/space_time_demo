@@ -41,8 +41,8 @@ x_loc, y_loc, z_loc, t_loc = utils.scale_inputs(x_loc, y_loc, z_loc, t_loc, 0.03
 # ordering and neighbor selection with maximin ordering
 # -------------------------------------------------------------
 locs = np.transpose(locs)
-odr = maxmin_exact(locs) # m17aximin ordering
-# odr = utils.time_ordering(locs) # time ordering
+# odr = maxmin_exact(locs) # maximin ordering
+odr = utils.time_ordering(locs) # time ordering
 
 locs = locs[odr, :]
 precs = precs[:, odr]
@@ -62,7 +62,7 @@ precs_train = torch.from_numpy(precs_train)
 train_data = bat.Data.new(locs, precs_train.float(), NN)
 
 # thetaInit = torch.tensor([3.9324, 1.2672, -0.3720, -0.1165, 0.7576, -1.4205])  # use this pretrained theta init to check log_prob
-thetaInit = torch.tensor([3.0781658 ,  2.1726654 , -0.86200583 , 0.9669404   ,0.5366117 , -1.4954433])  # use this pretrained theta init to check log_prob
+thetaInit = torch.tensor([2.2420518 ,  3.0156457,  -0.96973634 , 1.0997698 ,  0.47686517 ,-2.2102969 ])  # use this pretrained theta init to check log_prob
 
 
 tm = bat.SimpleTM(train_data, thetaInit, False, smooth=1.5, nugMult=4.0)
@@ -76,13 +76,13 @@ print(f"fit_map used {time.perf_counter() - tic:0.4f} seconds")
 # draw samples
 # -------------------------------------------------------------
 tic = time.perf_counter()
-new_sample = tm.cond_sample() # whole sample
+# new_sample = tm.cond_sample() # whole sample
 print(f"draw sample used {time.perf_counter() - tic:0.4f} seconds")
 
-# # conditional sampling
-# partial_field = precs_test[0, :(int(Ns) * 10)]
-# partial_field = torch.from_numpy(partial_field).float().squeeze()
-# new_sample = tm.cond_sample(xFix=partial_field) # conditional sampling for time ordering
+# conditional sampling
+partial_field = precs_test[0, :(int(Ns) * 10)]
+partial_field = torch.from_numpy(partial_field).float().squeeze()
+new_sample = tm.cond_sample(xFix=partial_field) # conditional sampling for time ordering
 
 # print estimated thetas
 print(f"estimated thetas are: {res.parameters.get('theta.theta')}")
@@ -92,8 +92,13 @@ print(f"estimated thetas are: {res.parameters.get('theta.theta')}")
 # -------------------------------------------------------------
 rev_ord = utils.rev_ord(odr)
 new_sample = new_sample[:, rev_ord]
-utils.plot_seq_heatmap(torch.t(torch.reshape(new_sample, (30, Ns))), "", "maximin_ordering2","", -3.5, 3.5)
-
+#%%
+utils.plot_seq_heatmap(
+    torch.t(torch.reshape(new_sample, (30, Ns))), FIGPATH="./", fig_name="test", suptitle="", nlat=74, nlon=37,
+    numrow=3, numcol=10, vmin=-4.5, vmax=4.5, str_ints=None,
+    row_labels=None, col_labels=None,
+    show=True, extent=(250, 295, -29.68, 39.11), show_border=True, min_lat=-29.68, max_lat=39.11, min_lon=250,
+    max_lon=295)
 
 
 
