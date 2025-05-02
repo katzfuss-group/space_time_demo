@@ -111,14 +111,14 @@ def train_gp_model(kernel, X_sampled, y_sampled, sample_size, n_epoch=100, lr=1e
 def sample_and_train_gp(X, Y, x_loc, y_loc, z_loc, t_loc, sample_size=5000, n_samp=5, kernel_scale=1.5, n_epoch=100, lr=1e-1):
     # Sample indices
     loc_indices, ensemble_indices = sample_spatiotemporal_indices(X, Y, sample_size=sample_size, n_samp=n_samp)
-    
+
     # Get sampled locations and responses
     X_sampled = extract_sampled_locations(x_loc, y_loc, z_loc, t_loc, loc_indices)
     y_sampled = extract_sampled_response(Y, ensemble_indices, loc_indices)
 
     # Initialize kernel
     kernel = MyKernel(kernel_scale)
-    
+
     # Update sample size
     sample_size = X_sampled.shape[0]
 
@@ -166,48 +166,66 @@ def rev_ord(ord):
     rev_ord[ord] = np.arange(ord.shape[0])
     return rev_ord
 
-def plot_seq_heatmap1(
+
+def plot_seq_heatmap_simple(sample_reshape, FIGPATH, fig_name, suptitle, global_min, global_max):
+    """
+
+        :param data: 2d torch tensor
+        :param FIGPATH: string of file path
+        :param fig_name: string of fig name
+        :param suptitle: string of suptitle
+        :param global_min: float, min for vmin in imshow
+        :param global_max: float, max for vmax in imshow
+        :return: figure in .png
+        """
+
+    numrow = 3
+    numcol = 10
+    fig, ax = plt.subplots(numrow, numcol)
+    # vmin = torch.min(sample_reshape)
+    # vmax = torch.max(sample_reshape)
+
+    # Set aspect ratio for each subplot to auto
+    for i in range(numrow):
+        for j in range(numcol):
+            ax[i, j].set_aspect('auto')
+
+    for d in range(30):
+        precs_fx_d = sample_reshape[:, d]
+        reshape = np.reshape(np.ravel(precs_fx_d, order='F'), (74, 37))
+        x = math.floor(d / numcol)
+        y = d % numcol
+        im0 = ax[x, y].imshow(reshape, cmap='Spectral_r', vmin= global_min, vmax= global_max)
+        # ax[x, y].imshow(reshape, cmap='Spectral_r', vmin=global_min, vmax=global_max)
+        ax[x, y].set_xticks([])
+        ax[x, y].set_yticks([])
+
+    plt.colorbar(im0, ax=ax.ravel().tolist(), shrink = 0.3, anchor = (1.0,1.0))
+
+    fig.suptitle(suptitle)
+    plt.savefig(FIGPATH + fig_name, dpi=600, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+
+def time_ordering(locs,train_time=30,sead = 123, n_locs=2738):
+    locs_spatial = locs[0:n_locs,:]
+    np.random.seed(sead)
+    spatial_ord = maxmin_exact(locs_spatial)
+    ord_combine = spatial_ord
+    for i in range(train_time):
+        ord_combine = np.concatenate((ord_combine, spatial_ord + i * len(spatial_ord)), axis=None)
+
+    ord_combine = ord_combine[len(spatial_ord):]
+    return ord_combine
+
+
+def plot_seq_heatmap(
         sample_reshape, FIGPATH="./", fig_name="test", suptitle="", nlat=190, nlon=288,
         numrow=1, numcol=5, vmin=-4.5, vmax=4.5, str_ints=None, row_labels=None, col_labels=None,
         show=False, extent=None, show_border=False, min_lat=-89.06, max_lat=89.06, min_lon=0, max_lon=360):
     """
-
-    Generate and save a heatmap-like sequence of plots using given data with geographical context. This function
-    creates visualizations using matplotlib and cartopy to display geographical data, with options for customization
-    such as subplot configurations, data scaling, labels, color scaling, geographical extent, and borders.
-
-    Parameters:
-        sample_reshape (ndarray): A reshaped array of data, where each column corresponds to a time snapshot or
-            data state to be visualized on separate subplots.
-        FIGPATH (str): The path where the generated plot image will be saved. Defaults to "./".
-        fig_name (str): The filename for the saved plot. Defaults to "test".
-        suptitle (str): The title for the entire figure. Defaults to an empty string.
-        nlat (int): Number of latitude points in the reshaped data. Defaults to 190.
-        nlon (int): Number of longitude points in the reshaped data. Defaults to 288.
-        numrow (int): Number of rows of subplots in the figure. Defaults to 1.
-        numcol (int): Number of columns of subplots in the figure. Defaults to 5.
-        vmin (float): Minimum value for color scaling. Defaults to -4.5.
-        vmax (float): Maximum value for color scaling. Defaults to 4.5.
-        str_ints (list of str): List of strings to annotate each subplot with specific textual information (e.g., time steps).
-        row_labels (list of str): Labels for subplot rows, displayed along the left side.
-        col_labels (list of str): Labels for subplot columns, displayed along the top side.
-        show (bool): Whether to display the plots immediately. If False, the plot is saved to a file. Defaults to False.
-        extent (tuple of float): The geographical bounds of the plot in the form (min_lon, max_lon, min_lat, max_lat).
-            If provided, this value adjusts plot dimensions to ensure proportionality with the geographical region.
-        show_border (bool): Whether or not to display geographical borders and coastline features. Defaults to False.
-        min_lat (float): Minimum latitude for the data grid. Defaults to -89.06.
-        max_lat (float): Maximum latitude for the data grid. Defaults to 89.06.
-        min_lon (float): Minimum longitude for the data grid. Defaults to 0.
-        max_lon (float): Maximum longitude for the data grid. Defaults to 360.
-
-    Returns:
-        None
-
-    Raises:
-        None
+    Generate and save a heatmap-like sequence of plots using given data with geographical context.
     """
-    # fig, ax = plt.subplots(numrow, numcol, figsize=(numcol * 2, numrow * 2), subplot_kw={'projection': ccrs.PlateCarree()})
-
     # Base dimensions for a single subplot
     base_width, base_height = 2, 2  # Adjust as needed for subplot size
 
@@ -221,7 +239,19 @@ def plot_seq_heatmap1(
     # Calculate total figure size dynamically
     fig_width = numcol * base_width * lon_range
     fig_height = numrow * base_height * lat_range
-    fig, ax = plt.subplots(numrow, numcol, figsize=(fig_width, fig_height), subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, ax = plt.subplots(numrow, numcol, figsize=(10, 6), subplot_kw={'projection': ccrs.PlateCarree()})
+
+    # Set aspect ratio for each subplot individually
+    aspect_ratio = fig_width / fig_height
+    if numrow == 1 and numcol == 1:
+        ax.set_aspect('auto')
+    elif numrow == 1:
+        for a in ax:
+            a.set_aspect('auto')
+    else:
+        for row in ax:
+            for a in row:
+                a.set_aspect('auto')
 
     # Reduce all spacing between subplots
     plt.subplots_adjust(wspace=0, hspace=0)
@@ -233,7 +263,7 @@ def plot_seq_heatmap1(
     images = []
     for d in range(numrow * numcol):
         precs_fx_d = sample_reshape[:, d]
-        reshape =np.reshape(np.ravel(precs_fx_d, order='F'), (nlat, nlon))
+        reshape = np.reshape(np.ravel(precs_fx_d, order='F'), (nlat, nlon))
         x, y = divmod(d, numcol)
         ax_current = ax[y] if numrow == 1 else ax[x, y]
 
@@ -241,10 +271,12 @@ def plot_seq_heatmap1(
         if extent:
             ax_current.set_extent(extent, crs=ccrs.PlateCarree())
             images.append(
-                ax_current.pcolormesh(lon_grid, lat_grid, reshape, transform=ccrs.PlateCarree(), cmap='Spectral_r', vmin=vmin, vmax=vmax))
+                ax_current.pcolormesh(lon_grid, lat_grid, reshape, transform=ccrs.PlateCarree(), cmap='Spectral_r',
+                                      vmin=vmin, vmax=vmax))
         elif show_border:
             images.append(
-                ax_current.pcolormesh(lon_grid, lat_grid, reshape, transform=ccrs.PlateCarree(), cmap='Spectral_r', vmin=vmin, vmax=vmax))
+                ax_current.pcolormesh(lon_grid, lat_grid, reshape, transform=ccrs.PlateCarree(), cmap='Spectral_r',
+                                      vmin=vmin, vmax=vmax))
         else:
             images.append(ax_current.imshow(reshape, cmap='Spectral_r', vmin=vmin, vmax=vmax))
 
@@ -275,51 +307,3 @@ def plot_seq_heatmap1(
         plt.savefig(FIGPATH + fig_name, dpi=1200, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-
-
-
-def plot_seq_heatmap(sample_reshape, FIGPATH, fig_name, suptitle, global_min, global_max):
-    """
-
-        :param data: 2d torch tensor
-        :param FIGPATH: string of file path
-        :param fig_name: string of fig name
-        :param suptitle: string of suptitle
-        :param global_min: float, min for vmin in imshow
-        :param global_max: float, max for vmax in imshow
-        :return: figure in .png
-        """
-
-    numrow = 3
-    numcol = 10
-    fig, ax = plt.subplots(numrow, numcol)
-    # vmin = torch.min(sample_reshape)
-    # vmax = torch.max(sample_reshape)
-
-    for d in range(30):
-        precs_fx_d = sample_reshape[:, d]
-        reshape = np.reshape(np.ravel(precs_fx_d, order='F'), (74, 37))
-        x = math.floor(d / numcol)
-        y = d % numcol
-        im0 = ax[x, y].imshow(reshape, cmap='Spectral_r', vmin= global_min, vmax= global_max)
-        # ax[x, y].imshow(reshape, cmap='Spectral_r', vmin=global_min, vmax=global_max)
-        ax[x, y].set_xticks([])
-        ax[x, y].set_yticks([])
-
-    plt.colorbar(im0, ax=ax.ravel().tolist(), shrink = 0.3, anchor = (1.0,1.0))
-
-    fig.suptitle(suptitle)
-    plt.savefig(FIGPATH + fig_name, dpi=600)
-    plt.close()
-
-
-def time_ordering(locs,train_time=30,sead = 123, n_locs=2738):
-    locs_spatial = locs[0:n_locs,:]
-    np.random.seed(sead)
-    spatial_ord = maxmin_exact(locs_spatial)
-    ord_combine = spatial_ord
-    for i in range(train_time):
-        ord_combine = np.concatenate((ord_combine, spatial_ord + i * len(spatial_ord)), axis=None)
-
-    ord_combine = ord_combine[len(spatial_ord):]
-    return ord_combine
