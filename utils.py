@@ -207,16 +207,52 @@ def plot_seq_heatmap_simple(sample_reshape, FIGPATH, fig_name, suptitle, global_
     plt.close()
 
 
-def time_ordering(locs,train_time=30,sead = 123, n_locs=2738):
-    locs_spatial = locs[0:n_locs,:]
-    np.random.seed(sead)
-    spatial_ord = maxmin_exact(locs_spatial)
-    ord_combine = spatial_ord
-    for i in range(train_time):
-        ord_combine = np.concatenate((ord_combine, spatial_ord + i * len(spatial_ord)), axis=None)
+def time_ordering(X):
+    '''
+    X : (Nx(d+1) torch/numpy tensor. Does not support batches. last column is time, first d columns are spatial coordinates
+    returns (N,) torch/numpy tensor of location in max min ordering.
+    '''
 
-    ord_combine = ord_combine[len(spatial_ord):]
-    return ord_combine
+    if isinstance(X, np.ndarray):
+        npFlag = True
+        X = torch.from_numpy(X)
+    else:
+        npFlag = False
+    if X.dim() > 2:
+        raise Exception("maxmin_exact does not support batch operations.")
+    if X.dim() < 2:
+        raise Exception("X must be a 2 dimensional tensor.")
+
+    N = X.shape[0]
+    # Sort by last column
+    time_col = X[:, -1]
+
+    sorted_indices = torch.argsort(time_col)
+
+    # Find unique times and their counts
+    unique_times, counts = torch.unique(time_col, return_counts=True)
+
+    # Initialize final ordering
+    final_order = torch.zeros(N, dtype=torch.long)
+
+    # Process each group of same times
+    current_pos = 0
+    for i in range(len(unique_times)):
+        if counts[i] > 1:
+            # Get indices for current time
+            mask = sorted_indices[current_pos:current_pos + counts[i]]
+            # Use maxmin_exact to break ties
+            tie_order = maxmin_exact(X[mask, :-1])
+            final_order[current_pos:current_pos + counts[i]] = sorted_indices[current_pos:current_pos + counts[i]][
+                tie_order]
+        else:
+            # Single time point, no tie to break
+            final_order[current_pos] = sorted_indices[current_pos]
+        current_pos += counts[i]
+
+    if npFlag:
+        return final_order.numpy()
+    return final_order
 
 
 def plot_seq_heatmap(
