@@ -22,8 +22,9 @@ data = prep.load_rdata("data/prec_days_101_81k_10_20.RData")
 locs, precs = prep.split_data(data, d=3)
 precs = np.log(precs + 1e-10) # log transform
 x_loc, y_loc, z_loc, t_loc = prep.process_coordinates(locs)
-Ns = 2738 # number of spatial locations in each time frame
-
+Ns, Nt = 2738, 30 # number of spatial locations in each time frame and number of time frame
+nlat, nlon = 74, 37
+min_lat, max_lat, min_lon, max_lon = -29.68, 39.11, 250, 295
 # -------------------------------------------------------------
 # ranges pretrain
 # -------------------------------------------------------------
@@ -57,16 +58,16 @@ scal = compute_scale(locs, NN)
 ## split training and testing data
 # Split data into training and testing sets
 precs_train, precs_test = train_test_split(precs, test_size=0.8, random_state=42)
+print(f"Number of training samples: {precs_train.shape[0]}")
 precs_train, precs_test = utils.scal_mean_sd(precs_train, precs_test)
 precs_train = torch.from_numpy(precs_train)
 train_data = bat.Data.new(locs, precs_train.float(), NN)
 
-# thetaInit = torch.tensor([3.9324, 1.2672, -0.3720, -0.1165, 0.7576, -1.4205])  # use this pretrained theta init to check log_prob
-thetaInit = torch.tensor([2.2420518 ,  3.0156457,  -0.96973634 , 1.0997698 ,  0.47686517 ,-2.2102969 ])  # use this pretrained theta init to check log_prob
+thetaInit = torch.tensor([2.24, 3.01, -0.96, 1.09, 0.47, -2.21 ])  # use this pretrained theta init to check log_prob
 
 
 tm = bat.SimpleTM(train_data, thetaInit, False, smooth=1.5, nugMult=4.0)
-maxIter, lr, batch_size = 1, 1e-3, 1000
+maxIter, lr, batch_size = 30, 1e-3, 1000
 tic = time.perf_counter()
 res = tm.fit(maxIter, init_lr=lr, batch_size=batch_size)
 print(f"fit_map used {time.perf_counter() - tic:0.4f} seconds")
@@ -80,7 +81,8 @@ tic = time.perf_counter()
 print(f"draw sample used {time.perf_counter() - tic:0.4f} seconds")
 
 # conditional sampling
-partial_field = precs_test[0, :(int(Ns) * 10)]
+con_t = 10 # conditioned on the first ten time frames
+partial_field = precs_test[0, :(int(Ns) * con_t)]
 partial_field = torch.from_numpy(partial_field).float().squeeze()
 new_sample = tm.cond_sample(xFix=partial_field) # conditional sampling for time ordering
 
@@ -92,13 +94,11 @@ print(f"estimated thetas are: {res.parameters.get('theta.theta')}")
 # -------------------------------------------------------------
 rev_ord = utils.rev_ord(odr)
 new_sample = new_sample[:, rev_ord]
-#%%
+
 utils.plot_seq_heatmap(
-    torch.t(torch.reshape(new_sample, (30, Ns))), FIGPATH="./", fig_name="test", suptitle="", nlat=74, nlon=37,
+    torch.t(torch.reshape(new_sample, (Nt, Ns))), FIGPATH="./", fig_name="sample", suptitle="", nlat=nlat, nlon=nlon,
     numrow=3, numcol=10, vmin=-4.5, vmax=4.5, str_ints=None,
     row_labels=None, col_labels=None,
-    show=True, extent=(250, 295, -29.68, 39.11), show_border=True, min_lat=-29.68, max_lat=39.11, min_lon=250,
-    max_lon=295)
-
-
-
+    show=True, extent=(min_lon, max_lon, min_lat, max_lat), show_border=True, min_lat=min_lat, max_lat=max_lat,
+    min_lon=min_lon,
+    max_lon=max_lon)
