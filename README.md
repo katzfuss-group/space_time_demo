@@ -2,7 +2,7 @@
 
 ## About this project
 
-This is the repository that applies the transport map model (also known as the auto-regressive GP model) from [Matthias' paper](https://www.tandfonline.com/doi/full/10.1080/01621459.2023.2197158), developed for spatial data, to spatio-temporal data. A toy example with a precipitation dataset is provided.
+This is the repository that applies the Bayesian transport map or autoregressive GP model of [Katzfuss and Schaefer](https://www.tandfonline.com/doi/full/10.1080/01621459.2023.2197158), developed for spatial data, to spatio-temporal data. A toy example with a precipitation dataset is provided.
 
 ## Install dependencies
 It is suggested that you create a new virtual environment to install these dependencies, for example, with `python3 -m venv .venv` and run `source .venv/bin/activate`.
