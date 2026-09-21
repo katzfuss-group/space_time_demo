@@ -1,0 +1,41 @@
+{
+  "title": "Scalable stochastic modeling of non-Gaussian spatio-temporal fields via autoregressive Gaussian processes: data and code",
+  "description": "Data and code accompanying the paper \"Scalable stochastic modeling of non-Gaussian spatio-temporal fields via autoregressive Gaussian processes.\" This release contains the scalable spatio-temporal autoregressive Gaussian process method, demonstrated on precipitation data from the CESM Large Ensemble Project. See README.md for installation and usage.",
+  "upload_type": "software",
+  "license": "MIT",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Lei-Cramer, Carrie. J.",
+      "affiliation": "",
+      "orcid": "0009-0009-9454-4511"
+    },
+    {
+      "name": "Cao, Jian.",
+      "affiliation": "",
+      "orcid": "000-0003-1609-4921"
+    },
+    {
+      "name": "Katzfuss, Matthias.",
+      "affiliation": "",
+      "orcid": "0000-0001-7496-7992"
+    }
+  ],
+  "keywords": [
+    "Gaussian processes",
+    "spatio-temporal statistics",
+    "non-Gaussian",
+    "autoregressive models",
+    "scalable inference",
+    "precipitation",
+    "CESM Large Ensemble"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.XXXX/XXXXX",
+      "relation": "isSupplementTo",
+      "resource_type": "publication-article",
+      "scheme": "doi"
+    }
+  ]
+}
